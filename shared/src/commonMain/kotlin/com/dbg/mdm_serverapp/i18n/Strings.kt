@@ -40,6 +40,19 @@ data class Strings(
     val helpTitle: String,
     val helpBody: String,
     val privacyBadge: String,
+    val deviceDetails: String,
+    val deviceIdentity: String,
+    val deviceStatus: String,
+    val deviceFacts: String,
+    val deviceId: String,
+    val appVersion: String,
+    val lastSeen: String,
+    val remoteAddress: String,
+    val connectionStatus: String,
+    val online: String,
+    val offline: String,
+    val noDeviceFacts: String,
+    val deviceNotFound: String,
 )
 
 private val english = Strings(
@@ -80,6 +93,19 @@ private val english = Strings(
     helpTitle = "How MDM Offline keeps things private",
     helpBody = "MDM Offline is built for local cybersecurity: monitor and control mobile devices from this PC without sending management traffic to the cloud. Perfect for offices, homes, and shared fleets. The server starts with the app and keeps running in the tray. Open the mobile app on each device, they appear automatically when they share your network.",
     privacyBadge = "Local-only · No cloud",
+    deviceDetails = "Device details",
+    deviceIdentity = "Identity",
+    deviceStatus = "Status",
+    deviceFacts = "Reported facts",
+    deviceId = "Device ID",
+    appVersion = "App version",
+    lastSeen = "Last seen",
+    remoteAddress = "Network address",
+    connectionStatus = "Connection",
+    online = "Online",
+    offline = "Offline",
+    noDeviceFacts = "No extra facts reported for this device yet.",
+    deviceNotFound = "This device is no longer available.",
 )
 
 private val italian = Strings(
@@ -120,6 +146,19 @@ private val italian = Strings(
     helpTitle = "Come MDM Offline resta privato",
     helpBody = "MDM Offline è pensato per la cybersecurity locale: monitora e controlla i dispositivi mobili da questo PC senza mandare il traffico di gestione sul cloud. Perfetto per uffici, case e flotte condivise. Il server si avvia con l'app e resta attivo nella tray. Apri l'app mobile su ogni dispositivo: compariranno da soli sulla stessa rete.",
     privacyBadge = "Solo locale · Nessun cloud",
+    deviceDetails = "Dettagli dispositivo",
+    deviceIdentity = "Identità",
+    deviceStatus = "Stato",
+    deviceFacts = "Informazioni segnalate",
+    deviceId = "ID dispositivo",
+    appVersion = "Versione app",
+    lastSeen = "Ultimo contatto",
+    remoteAddress = "Indirizzo di rete",
+    connectionStatus = "Connessione",
+    online = "Online",
+    offline = "Offline",
+    noDeviceFacts = "Nessuna informazione aggiuntiva segnalata per questo dispositivo.",
+    deviceNotFound = "Questo dispositivo non è più disponibile.",
 )
 
 fun stringsFor(language: AppLanguage): Strings = when (language) {

@@ -17,6 +17,21 @@ data class DeviceInfo(
     val remoteAddress: String? = null,
 )
 
+/** Sparse per-device key/value fact (optional attributes). */
+data class DeviceFact(
+    val deviceId: String,
+    val key: String,
+    val value: String,
+    val updatedAt: Long,
+)
+
+/** Full device view for the detail page. */
+data class DeviceDetail(
+    val device: Device,
+    val info: DeviceInfo,
+    val facts: List<DeviceFact> = emptyList(),
+)
+
 enum class AppLanguage(val code: String) {
     ENGLISH("en"),
     ITALIAN("it");

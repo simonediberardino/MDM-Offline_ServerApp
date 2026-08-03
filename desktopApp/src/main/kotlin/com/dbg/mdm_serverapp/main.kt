@@ -12,6 +12,7 @@ fun main() {
     val dashboardViewModel = DashboardViewModel(
         changeBus = runtime.changeBus,
         snapshotProvider = runtime::snapshot,
+        deviceDetailProvider = runtime::deviceDetail,
     )
     Runtime.getRuntime().addShutdownHook(Thread { runtime.shutdown() })
 

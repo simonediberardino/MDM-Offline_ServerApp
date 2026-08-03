@@ -6,6 +6,7 @@ import com.dbg.mdm_serverapp.api.StatusResponse
 import com.dbg.mdm_serverapp.server.db.MdmDatabase
 import com.dbg.mdm_serverapp.server.dto.RegisterRequest
 import com.dbg.mdm_serverapp.server.dto.RegisterResponse
+import com.dbg.mdm_serverapp.server.dto.UpdateInfoRequest
 import io.ktor.http.HttpStatusCode
 import io.ktor.serialization.kotlinx.json.json
 import io.ktor.server.application.Application
@@ -42,6 +43,9 @@ data class MdmServerRuntime(
 ) {
     fun snapshot(): DbChangeEvent.Snapshot =
         database.snapshot(LanAddressResolver.primaryIpv4())
+
+    fun deviceDetail(deviceId: String) =
+        database.getDeviceDetail(deviceId)
 
     fun shutdown() {
         discovery.stop()
@@ -153,6 +157,35 @@ fun Application.mdmModule(
                     message = "welcome",
                 ),
             )
+        }
+
+        post("/update_info") {
+            val body = call.receive<UpdateInfoRequest>()
+            if (body.deviceId.isBlank()) {
+                call.respond(HttpStatusCode.BadRequest)
+                return@post
+            }
+
+            if (database.devices.get(body.deviceId) == null) {
+                call.respond(HttpStatusCode.NotFound)
+                return@post
+            }
+
+            val remoteAddress = call.request.local.remoteHost
+            database.devices.updateInfo(
+                deviceId = body.deviceId,
+                appVersion = body.appVersion?.takeIf { it.isNotBlank() },
+                online = true,
+                remoteAddress = remoteAddress,
+            )
+            if (body.facts.isNotEmpty()) {
+                database.deviceFacts.upsertAll(
+                    deviceId = body.deviceId,
+                    facts = body.facts,
+                )
+            }
+
+            call.respond(HttpStatusCode.NoContent)
         }
     }
 }
