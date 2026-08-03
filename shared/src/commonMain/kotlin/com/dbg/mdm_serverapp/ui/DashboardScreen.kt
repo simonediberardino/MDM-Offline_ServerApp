@@ -67,6 +67,7 @@ fun DashboardScreen(
     onlineDeviceCount: Int,
     onRefresh: () -> Unit,
     onShowTutorial: () -> Unit,
+    onDeviceClick: (Device) -> Unit,
 ) {
     var section by remember { mutableStateOf(HomeSection.Devices) }
 
@@ -107,7 +108,11 @@ fun DashboardScreen(
                 Spacer(Modifier.height(20.dp))
 
                 when (section) {
-                    HomeSection.Devices -> DevicesSection(strings, devices)
+                    HomeSection.Devices -> DevicesSection(
+                        strings = strings,
+                        devices = devices,
+                        onDeviceClick = onDeviceClick,
+                    )
                     HomeSection.Help -> HelpSection(strings, onShowTutorial)
                 }
             }
@@ -288,6 +293,7 @@ private fun InfoBar(
 private fun DevicesSection(
     strings: Strings,
     devices: List<Device>,
+    onDeviceClick: (Device) -> Unit,
 ) {
     Column(modifier = Modifier.fillMaxSize()) {
         Text(strings.homeHint, style = MaterialTheme.typography.bodyLarge, color = FluentTextSecondary)
@@ -309,7 +315,10 @@ private fun DevicesSection(
             HorizontalDivider(color = FluentStroke)
             LazyColumn {
                 items(devices, key = { it.id }) { device ->
-                    DeviceTableRow(device = device)
+                    DeviceTableRow(
+                        device = device,
+                        onClick = { onDeviceClick(device) },
+                    )
                     HorizontalDivider(color = FluentStroke)
                 }
             }
@@ -369,10 +378,18 @@ private fun HeaderCell(text: String, modifier: Modifier) {
 }
 
 @Composable
-private fun DeviceTableRow(device: Device) {
+private fun DeviceTableRow(
+    device: Device,
+    onClick: () -> Unit,
+) {
+    val interaction = remember { MutableInteractionSource() }
+    val hovered by interaction.collectIsHoveredAsState()
     Row(
         modifier = Modifier
             .fillMaxWidth()
+            .background(if (hovered) FluentNavHover else FluentCard)
+            .hoverable(interaction)
+            .clickable(onClick = onClick)
             .padding(horizontal = 14.dp, vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
