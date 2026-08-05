@@ -4,15 +4,13 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Window
 import androidx.compose.ui.window.application
 import androidx.compose.ui.window.rememberWindowState
+import com.dbg.mdm_serverapp.presentation.viewmodel.DashboardViewModel
 import com.dbg.mdm_serverapp.server.startMdmServer
-import com.dbg.mdm_serverapp.ui.DashboardViewModel
 
 fun main() {
     val runtime = startMdmServer(wait = false)
     val dashboardViewModel = DashboardViewModel(
-        changeBus = runtime.changeBus,
-        snapshotProvider = runtime::snapshot,
-        deviceDetailProvider = runtime::deviceDetail,
+        deviceRepository = runtime.deviceRepository,
     )
     Runtime.getRuntime().addShutdownHook(Thread { runtime.shutdown() })
 

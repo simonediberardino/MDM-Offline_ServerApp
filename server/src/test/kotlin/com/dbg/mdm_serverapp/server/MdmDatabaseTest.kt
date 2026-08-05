@@ -1,6 +1,6 @@
 package com.dbg.mdm_serverapp.server
 
-import com.dbg.mdm_serverapp.server.db.MdmDatabase
+import com.dbg.mdm_serverapp.server.data.local.db.MdmDatabase
 import java.nio.file.Files
 import kotlin.test.Test
 import kotlin.test.assertEquals

@@ -1,12 +1,12 @@
 package com.dbg.mdm_serverapp
 
-import com.dbg.mdm_serverapp.model.AppLanguage
-import com.dbg.mdm_serverapp.protocol.MdmMessage
-import com.dbg.mdm_serverapp.protocol.ProtocolConstants
-import com.dbg.mdm_serverapp.protocol.buildDiscoverReply
-import com.dbg.mdm_serverapp.protocol.decodeMessage
-import com.dbg.mdm_serverapp.protocol.encodeMessage
-import com.dbg.mdm_serverapp.protocol.parseDiscoverReply
+import com.dbg.mdm_serverapp.domain.model.AppLanguage
+import com.dbg.mdm_serverapp.data.network.protocol.MdmMessage
+import com.dbg.mdm_serverapp.data.network.protocol.ProtocolConstants
+import com.dbg.mdm_serverapp.data.network.protocol.buildDiscoverReply
+import com.dbg.mdm_serverapp.data.network.protocol.decodeMessage
+import com.dbg.mdm_serverapp.data.network.protocol.encodeMessage
+import com.dbg.mdm_serverapp.data.network.protocol.parseDiscoverReply
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue

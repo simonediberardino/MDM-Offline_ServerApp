@@ -11,14 +11,14 @@ import androidx.navigation3.runtime.entryProvider
 import androidx.navigation3.runtime.rememberNavBackStack
 import androidx.navigation3.ui.NavDisplay
 import androidx.savedstate.serialization.SavedStateConfiguration
-import com.dbg.mdm_serverapp.i18n.stringsFor
-import com.dbg.mdm_serverapp.navigation.AppRoute
-import com.dbg.mdm_serverapp.settings.AppSettings
-import com.dbg.mdm_serverapp.ui.DashboardScreen
-import com.dbg.mdm_serverapp.ui.DashboardViewModel
-import com.dbg.mdm_serverapp.ui.DeviceDetailScreen
-import com.dbg.mdm_serverapp.ui.TutorialScreen
-import com.dbg.mdm_serverapp.ui.theme.WindowsAppTheme
+import com.dbg.mdm_serverapp.presentation.i18n.stringsFor
+import com.dbg.mdm_serverapp.presentation.navigation.AppRoute
+import com.dbg.mdm_serverapp.data.local.AppSettings
+import com.dbg.mdm_serverapp.presentation.ui.DashboardScreen
+import com.dbg.mdm_serverapp.presentation.ui.DeviceDetailScreen
+import com.dbg.mdm_serverapp.presentation.ui.TutorialScreen
+import com.dbg.mdm_serverapp.presentation.ui.theme.WindowsAppTheme
+import com.dbg.mdm_serverapp.presentation.viewmodel.DashboardViewModel
 import kotlinx.serialization.modules.SerializersModule
 import kotlinx.serialization.modules.polymorphic
 

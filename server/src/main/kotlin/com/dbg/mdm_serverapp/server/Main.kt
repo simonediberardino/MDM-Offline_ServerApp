@@ -1,12 +1,14 @@
 package com.dbg.mdm_serverapp.server
 
-import com.dbg.mdm_serverapp.api.DbChangeBus
-import com.dbg.mdm_serverapp.api.DbChangeEvent
-import com.dbg.mdm_serverapp.api.StatusResponse
-import com.dbg.mdm_serverapp.server.db.MdmDatabase
-import com.dbg.mdm_serverapp.server.dto.RegisterRequest
-import com.dbg.mdm_serverapp.server.dto.RegisterResponse
-import com.dbg.mdm_serverapp.server.dto.UpdateInfoRequest
+import com.dbg.mdm_serverapp.data.network.DeviceChangeBus
+import com.dbg.mdm_serverapp.data.network.dto.RegisterRequest
+import com.dbg.mdm_serverapp.data.network.dto.RegisterResponse
+import com.dbg.mdm_serverapp.data.network.dto.StatusResponse
+import com.dbg.mdm_serverapp.data.network.dto.UpdateInfoRequest
+import com.dbg.mdm_serverapp.domain.repository.DeviceRepository
+import com.dbg.mdm_serverapp.server.data.DeviceRepositoryImpl
+import com.dbg.mdm_serverapp.server.data.local.db.MdmDatabase
+import com.dbg.mdm_serverapp.server.data.network.UdpDiscoveryResponder
 import io.ktor.http.HttpStatusCode
 import io.ktor.serialization.kotlinx.json.json
 import io.ktor.server.application.Application
@@ -36,17 +38,11 @@ private val eventJson = Json {
 }
 
 data class MdmServerRuntime(
-    val changeBus: DbChangeBus,
+    val deviceRepository: DeviceRepository,
     val database: MdmDatabase,
     val httpServer: EmbeddedServer<NettyApplicationEngine, NettyApplicationEngine.Configuration>,
     val discovery: UdpDiscoveryResponder,
 ) {
-    fun snapshot(): DbChangeEvent.Snapshot =
-        database.snapshot(LanAddressResolver.primaryIpv4())
-
-    fun deviceDetail(deviceId: String) =
-        database.getDeviceDetail(deviceId)
-
     fun shutdown() {
         discovery.stop()
         httpServer.stop(1_000, 2_000)
@@ -55,16 +51,11 @@ data class MdmServerRuntime(
     }
 }
 
-fun main() {
-    val runtime = startMdmServer(wait = true)
-    Runtime.getRuntime().addShutdownHook(Thread { runtime.shutdown() })
-}
-
 /**
- * Starts HTTP + UDP discovery, sharing [changeBus] with any in-process UI.
+ * Starts HTTP + UDP discovery, exposing a [DeviceRepository] for any in-process UI.
  */
 fun startMdmServer(
-    changeBus: DbChangeBus = DbChangeBus(),
+    changeBus: DeviceChangeBus = DeviceChangeBus(),
     wait: Boolean = false,
 ): MdmServerRuntime {
     val serverId = UUID.randomUUID().toString()
@@ -92,8 +83,14 @@ fun startMdmServer(
     )
     httpServer.start(wait = wait)
 
-    return MdmServerRuntime(
+    val deviceRepository = DeviceRepositoryImpl(
+        database = database,
         changeBus = changeBus,
+        lanAddressProvider = { LanAddressResolver.primaryIpv4() },
+    )
+
+    return MdmServerRuntime(
+        deviceRepository = deviceRepository,
         database = database,
         httpServer = httpServer,
         discovery = discovery,
@@ -114,8 +111,6 @@ fun Application.mdmModule(
         return StatusResponse(
             running = true,
             lanAddress = snapshot.lanAddress,
-            devices = snapshot.devices,
-            onlineDeviceCount = snapshot.onlineDeviceCount,
         )
     }
 
@@ -177,6 +172,7 @@ fun Application.mdmModule(
                 appVersion = body.appVersion?.takeIf { it.isNotBlank() },
                 online = true,
                 remoteAddress = remoteAddress,
+                publishChange = false,
             )
             if (body.facts.isNotEmpty()) {
                 database.deviceFacts.upsertAll(
@@ -184,6 +180,7 @@ fun Application.mdmModule(
                     facts = body.facts,
                 )
             }
+            database.publishDeviceUpdated(body.deviceId)
 
             call.respond(HttpStatusCode.NoContent)
         }
