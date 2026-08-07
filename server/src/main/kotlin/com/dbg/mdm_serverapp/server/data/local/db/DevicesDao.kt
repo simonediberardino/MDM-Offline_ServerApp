@@ -4,6 +4,7 @@ import com.dbg.mdm_serverapp.data.network.DeviceChangeBus
 import com.dbg.mdm_serverapp.domain.event.DeviceChangeEvent
 import com.dbg.mdm_serverapp.domain.model.Device
 import com.dbg.mdm_serverapp.domain.model.DeviceInfo
+import com.dbg.mdm_serverapp.domain.model.DevicePresence
 import org.jetbrains.exposed.v1.core.ResultRow
 import org.jetbrains.exposed.v1.core.SortOrder
 import org.jetbrains.exposed.v1.core.eq
@@ -26,11 +27,10 @@ class DevicesDao(
         name: String,
         platform: String,
         appVersion: String,
-        online: Boolean,
         remoteAddress: String?,
         now: Long = System.currentTimeMillis(),
     ): Device = transaction(database) {
-        val existing = find(id)
+        val existing = find(id, now)
         if (existing == null) {
             DevicesTable.insert {
                 it[DevicesTable.id] = id
@@ -39,14 +39,13 @@ class DevicesDao(
                 it[DevicesTable.registeredAt] = now
                 it[DevicesTable.appVersion] = appVersion
                 it[DevicesTable.lastSeenAt] = now
-                it[DevicesTable.online] = online
                 it[DevicesTable.remoteAddress] = remoteAddress
             }
-            val device = find(id)!!
+            val device = find(id, now)!!
             publish(
                 DeviceChangeEvent.DeviceRegistered(
                     device = device,
-                    onlineDeviceCount = countOnline(),
+                    onlineDeviceCount = countOnline(now),
                 ),
             )
             device
@@ -54,18 +53,16 @@ class DevicesDao(
             applyInfoUpdate(
                 deviceId = id,
                 appVersion = appVersion,
-                online = online,
                 remoteAddress = remoteAddress,
                 now = now,
             )
-            find(id)!!
+            find(id, now)!!
         }
     }
 
     fun updateInfo(
         deviceId: String,
         appVersion: String? = null,
-        online: Boolean? = null,
         remoteAddress: String? = null,
         now: Long = System.currentTimeMillis(),
         publishChange: Boolean = true,
@@ -74,7 +71,6 @@ class DevicesDao(
             applyInfoUpdate(
                 deviceId = deviceId,
                 appVersion = appVersion,
-                online = online,
                 remoteAddress = remoteAddress,
                 now = now,
                 publishChange = publishChange,
@@ -82,56 +78,40 @@ class DevicesDao(
         }
     }
 
-    fun setOnline(id: String, online: Boolean, remoteAddress: String? = null) {
-        updateInfo(
-            deviceId = id,
-            online = online,
-            remoteAddress = remoteAddress,
-        )
+    fun get(id: String, now: Long = System.currentTimeMillis()): Device? = transaction(database) {
+        find(id, now)
     }
 
-    fun markAllOffline() {
+    fun getInfo(deviceId: String, now: Long = System.currentTimeMillis()): DeviceInfo? =
         transaction(database) {
-            DevicesTable.update({ DevicesTable.online eq true }) {
-                it[online] = false
-            }
-            publish(DeviceChangeEvent.DevicesMarkedOffline(onlineDeviceCount = 0))
+            DevicesTable.selectAll()
+                .where { DevicesTable.id eq deviceId }
+                .map { row ->
+                    val lastSeenAt = row[DevicesTable.lastSeenAt]
+                    DeviceInfo(
+                        deviceId = row[DevicesTable.id],
+                        appVersion = row[DevicesTable.appVersion],
+                        lastSeenAt = lastSeenAt,
+                        online = DevicePresence.isOnline(lastSeenAt, now),
+                        remoteAddress = row[DevicesTable.remoteAddress],
+                    )
+                }
+                .singleOrNull()
         }
-    }
 
-    fun get(id: String): Device? = transaction(database) {
-        find(id)
-    }
-
-    fun getInfo(deviceId: String): DeviceInfo? = transaction(database) {
-        DevicesTable.selectAll()
-            .where { DevicesTable.id eq deviceId }
-            .map { row ->
-                DeviceInfo(
-                    deviceId = row[DevicesTable.id],
-                    appVersion = row[DevicesTable.appVersion],
-                    lastSeenAt = row[DevicesTable.lastSeenAt],
-                    online = row[DevicesTable.online],
-                    remoteAddress = row[DevicesTable.remoteAddress],
-                )
-            }
-            .singleOrNull()
-    }
-
-    fun list(): List<Device> = transaction(database) {
+    fun list(now: Long = System.currentTimeMillis()): List<Device> = transaction(database) {
         DevicesTable.selectAll()
             .orderBy(DevicesTable.registeredAt to SortOrder.DESC)
-            .map { it.toDevice() }
+            .map { it.toDevice(now) }
     }
 
-    fun countOnlineDevices(): Int = transaction(database) {
-        countOnline()
+    fun countOnlineDevices(now: Long = System.currentTimeMillis()): Int = transaction(database) {
+        countOnline(now)
     }
 
     private fun applyInfoUpdate(
         deviceId: String,
         appVersion: String?,
-        online: Boolean?,
         remoteAddress: String?,
         now: Long,
         publishChange: Boolean = true,
@@ -141,9 +121,6 @@ class DevicesDao(
                 it[DevicesTable.appVersion] = appVersion
             }
             it[DevicesTable.lastSeenAt] = now
-            if (online != null) {
-                it[DevicesTable.online] = online
-            }
             if (remoteAddress != null) {
                 it[DevicesTable.remoteAddress] = remoteAddress
             }
@@ -152,33 +129,36 @@ class DevicesDao(
             publish(
                 DeviceChangeEvent.DeviceUpdated(
                     deviceId = deviceId,
-                    onlineDeviceCount = countOnline(),
+                    lastSeenAt = now,
+                    onlineDeviceCount = countOnline(now),
                 ),
             )
         }
     }
 
-    private fun find(id: String): Device? =
+    private fun find(id: String, now: Long): Device? =
         DevicesTable.selectAll()
             .where { DevicesTable.id eq id }
-            .map { it.toDevice() }
+            .map { it.toDevice(now) }
             .singleOrNull()
 
-    private fun countOnline(): Int =
+    private fun countOnline(now: Long): Int =
         DevicesTable.selectAll()
-            .where { DevicesTable.online eq true }
-            .count()
-            .toInt()
+            .count { row -> DevicePresence.isOnline(row[DevicesTable.lastSeenAt], now) }
 
     private fun publish(event: DeviceChangeEvent) {
         changeBus?.publish(event)
     }
 
-    private fun ResultRow.toDevice(): Device =
-        Device(
+    private fun ResultRow.toDevice(now: Long): Device {
+        val lastSeenAt = this[DevicesTable.lastSeenAt]
+        return Device(
             id = this[DevicesTable.id],
             name = this[DevicesTable.name],
             platform = this[DevicesTable.platform],
             registeredAt = this[DevicesTable.registeredAt],
+            lastSeenAt = lastSeenAt,
+            online = DevicePresence.isOnline(lastSeenAt, now),
         )
+    }
 }

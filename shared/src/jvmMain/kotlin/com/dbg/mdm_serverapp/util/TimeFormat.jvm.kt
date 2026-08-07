@@ -8,3 +8,5 @@ actual fun formatEpoch(epochMs: Long): String {
     val formatter = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault())
     return formatter.format(Date(epochMs))
 }
+
+actual fun currentTimeMillis(): Long = System.currentTimeMillis()

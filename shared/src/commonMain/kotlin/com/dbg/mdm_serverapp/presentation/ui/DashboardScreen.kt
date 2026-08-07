@@ -359,7 +359,9 @@ private fun DeviceTableHeader(strings: Strings) {
             .fillMaxWidth()
             .background(FluentSmoke)
             .padding(horizontal = 14.dp, vertical = 10.dp),
+        verticalAlignment = Alignment.CenterVertically,
     ) {
+        Spacer(Modifier.width(20.dp))
         HeaderCell(strings.deviceName, Modifier.weight(1.4f))
         HeaderCell(strings.deviceType, Modifier.weight(1f))
         HeaderCell(strings.registered, Modifier.weight(1.2f))
@@ -393,6 +395,13 @@ private fun DeviceTableRow(
             .padding(horizontal = 14.dp, vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
+        Box(
+            modifier = Modifier
+                .size(8.dp)
+                .clip(CircleShape)
+                .background(if (device.online) FluentSuccess else FluentTextSecondary),
+        )
+        Spacer(Modifier.width(12.dp))
         Text(device.name, modifier = Modifier.weight(1.4f), fontWeight = FontWeight.Medium)
         Text(device.platform, modifier = Modifier.weight(1f), color = FluentTextSecondary)
         Text(formatEpoch(device.registeredAt), modifier = Modifier.weight(1.2f), color = FluentTextSecondary)

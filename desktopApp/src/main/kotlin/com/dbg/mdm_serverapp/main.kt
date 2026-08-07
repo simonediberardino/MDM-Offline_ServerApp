@@ -20,7 +20,10 @@ fun main() {
             title = "MDM Offline",
             state = rememberWindowState(width = 1180.dp, height = 780.dp),
         ) {
-            App(dashboardViewModel = dashboardViewModel)
+            App(
+                dashboardViewModel = dashboardViewModel,
+                deviceRepository = runtime.deviceRepository,
+            )
         }
     }
 }

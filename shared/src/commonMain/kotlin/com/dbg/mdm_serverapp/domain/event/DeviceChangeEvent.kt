@@ -20,10 +20,10 @@ sealed class DeviceChangeEvent {
 
     data class DeviceUpdated(
         val deviceId: String,
+        val lastSeenAt: Long,
         val onlineDeviceCount: Int,
     ) : DeviceChangeEvent()
 
-    data class DevicesMarkedOffline(
-        val onlineDeviceCount: Int = 0,
-    ) : DeviceChangeEvent()
+    /** Local tick: recompute online from cached lastSeenAt without hitting the store. */
+    data object PresenceTick : DeviceChangeEvent()
 }

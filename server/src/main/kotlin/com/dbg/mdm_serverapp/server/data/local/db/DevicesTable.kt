@@ -9,7 +9,6 @@ object DevicesTable : Table("devices") {
     val registeredAt = long("registered_at")
     val appVersion = varchar("app_version", 64)
     val lastSeenAt = long("last_seen_at")
-    val online = bool("online").default(false)
     val remoteAddress = varchar("remote_address", 128).nullable()
 
     override val primaryKey = PrimaryKey(id)

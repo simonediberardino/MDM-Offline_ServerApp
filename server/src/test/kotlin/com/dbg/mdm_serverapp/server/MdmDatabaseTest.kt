@@ -1,5 +1,6 @@
 package com.dbg.mdm_serverapp.server
 
+import com.dbg.mdm_serverapp.domain.model.DevicePresence
 import com.dbg.mdm_serverapp.server.data.local.db.MdmDatabase
 import java.nio.file.Files
 import kotlin.test.Test
@@ -22,7 +23,6 @@ class MdmDatabaseTest {
             name = "Tablet A",
             platform = "Android",
             appVersion = "1.0.0",
-            online = true,
             remoteAddress = "192.168.1.20",
         )
         devices.register(
@@ -30,7 +30,6 @@ class MdmDatabaseTest {
             name = "Should Not Change",
             platform = "Should Not Change",
             appVersion = "2.0.0",
-            online = true,
             remoteAddress = "192.168.1.21",
         )
 
@@ -39,6 +38,7 @@ class MdmDatabaseTest {
         val device = listed.first()
         assertEquals("Tablet A", device.name)
         assertEquals("Android", device.platform)
+        assertTrue(device.online)
 
         val info = devices.getInfo("d1")!!
         assertEquals("2.0.0", info.appVersion)
@@ -46,9 +46,9 @@ class MdmDatabaseTest {
         assertTrue(info.online)
         assertEquals(1, devices.countOnlineDevices())
 
-        devices.markAllOffline()
-        assertFalse(devices.getInfo("d1")!!.online)
-        assertEquals(0, devices.countOnlineDevices())
+        val staleNow = info.lastSeenAt + DevicePresence.ONLINE_THRESHOLD_MS
+        assertFalse(devices.getInfo("d1", now = staleNow)!!.online)
+        assertEquals(0, devices.countOnlineDevices(now = staleNow))
 
         database.close()
     }
@@ -64,7 +64,6 @@ class MdmDatabaseTest {
             name = "Tablet A",
             platform = "Android",
             appVersion = "1.0.0",
-            online = true,
             remoteAddress = "192.168.1.20",
         )
 
@@ -114,7 +113,6 @@ class MdmDatabaseTest {
             name = "Tablet A",
             platform = "Android",
             appVersion = "1.0.0",
-            online = true,
             remoteAddress = "192.168.1.20",
         )
         database.deviceFacts.upsertAll(
@@ -126,6 +124,7 @@ class MdmDatabaseTest {
         assertEquals("Tablet A", detail.device.name)
         assertEquals("1.0.0", detail.info.appVersion)
         assertEquals("192.168.1.20", detail.info.remoteAddress)
+        assertTrue(detail.info.online)
         assertEquals(1, detail.facts.size)
         assertEquals("battery_level", detail.facts.first().key)
         assertEquals("55", detail.facts.first().value)

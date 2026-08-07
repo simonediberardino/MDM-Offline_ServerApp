@@ -46,7 +46,6 @@ data class MdmServerRuntime(
     fun shutdown() {
         discovery.stop()
         httpServer.stop(1_000, 2_000)
-        database.devices.markAllOffline()
         runCatching { database.close() }
     }
 }
@@ -61,7 +60,6 @@ fun startMdmServer(
     val serverId = UUID.randomUUID().toString()
     val dataDir = File(System.getProperty("user.home"), ".mdm_offline")
     val database = MdmDatabase(File(dataDir, "server.db"), changeBus = changeBus)
-    database.devices.markAllOffline()
 
     val lanAddress = LanAddressResolver.primaryIpv4()
     logger.info("MDM Offline server starting on http://$lanAddress:${ServerConfig.HTTP_PORT} (id=$serverId)")
@@ -116,6 +114,16 @@ fun Application.mdmModule(
 
     routing {
         get("/status") {
+            val deviceId = call.request.queryParameters["deviceId"]?.takeIf { it.isNotBlank() }
+            logger.info("Executing status... $deviceId")
+
+            if (deviceId != null && database.devices.get(deviceId) != null) {
+                logger.info("Received status from deviceId=$deviceId address:${call.request.local.remoteHost}")
+                database.devices.updateInfo(
+                    deviceId = deviceId,
+                    remoteAddress = call.request.local.remoteHost,
+                )
+            }
             call.respond(currentStatus())
         }
 
@@ -141,7 +149,6 @@ fun Application.mdmModule(
                 name = body.deviceName,
                 platform = body.platform,
                 appVersion = body.appVersion,
-                online = true,
                 remoteAddress = remoteAddress,
             )
 
@@ -167,11 +174,12 @@ fun Application.mdmModule(
             }
 
             val remoteAddress = call.request.local.remoteHost
+            val now = System.currentTimeMillis()
             database.devices.updateInfo(
                 deviceId = body.deviceId,
                 appVersion = body.appVersion?.takeIf { it.isNotBlank() },
-                online = true,
                 remoteAddress = remoteAddress,
+                now = now,
                 publishChange = false,
             )
             if (body.facts.isNotEmpty()) {
@@ -180,7 +188,7 @@ fun Application.mdmModule(
                     facts = body.facts,
                 )
             }
-            database.publishDeviceUpdated(body.deviceId)
+            database.publishDeviceUpdated(body.deviceId, lastSeenAt = now)
 
             call.respond(HttpStatusCode.NoContent)
         }

@@ -6,6 +6,8 @@ data class Device(
     val name: String,
     val platform: String,
     val registeredAt: Long,
+    val lastSeenAt: Long,
+    val online: Boolean,
 )
 
 /** Mutable runtime attributes (detail page). */

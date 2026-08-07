@@ -2,6 +2,8 @@ package com.dbg.mdm_serverapp.presentation.state
 
 import com.dbg.mdm_serverapp.domain.event.DeviceChangeEvent
 import com.dbg.mdm_serverapp.domain.model.Device
+import com.dbg.mdm_serverapp.domain.model.DevicePresence
+import com.dbg.mdm_serverapp.util.currentTimeMillis
 
 data class ServerUiState(
     val running: Boolean = false,
@@ -10,13 +12,15 @@ data class ServerUiState(
     val onlineDeviceCount: Int = 0,
 )
 
-fun ServerUiState.applyDeviceChange(event: DeviceChangeEvent): ServerUiState =
-    when (event) {
+fun ServerUiState.applyDeviceChange(
+    event: DeviceChangeEvent,
+    nowMs: Long = currentTimeMillis(),
+): ServerUiState {
+    val next = when (event) {
         is DeviceChangeEvent.Snapshot -> copy(
             running = true,
             lanAddress = event.lanAddress,
             devices = event.devices,
-            onlineDeviceCount = event.onlineDeviceCount,
         )
 
         is DeviceChangeEvent.DeviceRegistered -> {
@@ -24,17 +28,25 @@ fun ServerUiState.applyDeviceChange(event: DeviceChangeEvent): ServerUiState =
             copy(
                 running = true,
                 devices = listOf(event.device) + without,
-                onlineDeviceCount = event.onlineDeviceCount,
             )
         }
 
         is DeviceChangeEvent.DeviceUpdated -> copy(
             running = true,
-            onlineDeviceCount = event.onlineDeviceCount,
+            devices = devices.map { device ->
+                if (device.id != event.deviceId) device
+                else device.copy(lastSeenAt = event.lastSeenAt)
+            },
         )
 
-        is DeviceChangeEvent.DevicesMarkedOffline -> copy(
-            running = true,
-            onlineDeviceCount = event.onlineDeviceCount,
-        )
+        is DeviceChangeEvent.PresenceTick -> this
     }
+
+    val devices = next.devices.map { device ->
+        device.copy(online = DevicePresence.isOnline(device.lastSeenAt, nowMs))
+    }
+    return next.copy(
+        devices = devices,
+        onlineDeviceCount = devices.count { it.online },
+    )
+}

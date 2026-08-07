@@ -32,30 +32,35 @@ class MdmDatabase(
         TransactionManager.manager.defaultIsolationLevel = Connection.TRANSACTION_SERIALIZABLE
         transaction(database) {
             SchemaUtils.create(DevicesTable, DeviceFactsTable)
+            dropLegacyOnlineColumn()
         }
         devices = DevicesDao(database, changeBus)
         deviceFacts = DeviceFactsDao(database)
     }
 
-    fun snapshot(lanAddress: String): DeviceChangeEvent.Snapshot =
-        DeviceChangeEvent.Snapshot(
+    fun snapshot(lanAddress: String): DeviceChangeEvent.Snapshot {
+        val now = System.currentTimeMillis()
+        return DeviceChangeEvent.Snapshot(
             lanAddress = lanAddress,
-            devices = devices.list(),
-            onlineDeviceCount = devices.countOnlineDevices(),
+            devices = devices.list(now),
+            onlineDeviceCount = devices.countOnlineDevices(now),
         )
+    }
 
-    fun publishDeviceUpdated(deviceId: String) {
+    fun publishDeviceUpdated(deviceId: String, lastSeenAt: Long = System.currentTimeMillis()) {
         changeBus?.publish(
             DeviceChangeEvent.DeviceUpdated(
                 deviceId = deviceId,
-                onlineDeviceCount = devices.countOnlineDevices(),
+                lastSeenAt = lastSeenAt,
+                onlineDeviceCount = devices.countOnlineDevices(lastSeenAt),
             ),
         )
     }
 
     fun getDeviceDetail(deviceId: String): DeviceDetail? {
-        val device = devices.get(deviceId) ?: return null
-        val info = devices.getInfo(deviceId) ?: return null
+        val now = System.currentTimeMillis()
+        val device = devices.get(deviceId, now) ?: return null
+        val info = devices.getInfo(deviceId, now) ?: return null
         return DeviceDetail(
             device = device,
             info = info,
@@ -65,5 +70,26 @@ class MdmDatabase(
 
     fun close() {
         TransactionManager.closeAndUnregister(database)
+    }
+
+    private fun dropLegacyOnlineColumn() {
+        val connection = TransactionManager.current().connection.connection as java.sql.Connection
+        val hasOnline = connection.createStatement().use { statement ->
+            statement.executeQuery("PRAGMA table_info(devices)").use { rs ->
+                var found = false
+                while (rs.next()) {
+                    if (rs.getString("name") == "online") {
+                        found = true
+                        break
+                    }
+                }
+                found
+            }
+        }
+        if (hasOnline) {
+            connection.createStatement().use { statement ->
+                statement.execute("ALTER TABLE devices DROP COLUMN online")
+            }
+        }
     }
 }
