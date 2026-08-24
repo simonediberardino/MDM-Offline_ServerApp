@@ -2,11 +2,17 @@ package com.dbg.mdm_serverapp.presentation.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.dbg.mdm_serverapp.data.network.protocol.ProtocolConstants
 import com.dbg.mdm_serverapp.domain.event.DeviceChangeEvent
 import com.dbg.mdm_serverapp.domain.model.DevicePresence
 import com.dbg.mdm_serverapp.domain.repository.DeviceRepository
 import com.dbg.mdm_serverapp.presentation.state.ServerUiState
 import com.dbg.mdm_serverapp.presentation.state.applyDeviceChange
+import io.ktor.client.HttpClient
+import io.ktor.client.engine.cio.CIO
+import io.ktor.client.request.get
+import io.ktor.client.statement.HttpResponse
+import io.ktor.client.statement.bodyAsText
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -37,7 +43,19 @@ class DashboardViewModel(
         }
     }
 
-    fun refresh() {
-        _uiState.update { current -> current.applyDeviceChange(deviceRepository.getSnapshot()) }
+    suspend fun refresh() {
+        for (device in uiState.value.devices) {
+            val info = deviceRepository.getDeviceDetail(device.id)?.info ?: continue
+
+            val client = HttpClient(CIO)
+
+            try {
+                client.get("http://${info.remoteAddress}:${ProtocolConstants.CLIENT_HTTP_PORT}/update")
+            } catch (exception: Exception) {
+                exception.printStackTrace()
+            } finally {
+                client.close()
+            }
+        }
     }
 }

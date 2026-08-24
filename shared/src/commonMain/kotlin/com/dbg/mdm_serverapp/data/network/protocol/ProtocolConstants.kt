@@ -1,6 +1,7 @@
 package com.dbg.mdm_serverapp.data.network.protocol
 
 object ProtocolConstants {
+    val CLIENT_HTTP_PORT = 9878
     const val HTTP_PORT = 9876
     const val UDP_PORT = 9877
 

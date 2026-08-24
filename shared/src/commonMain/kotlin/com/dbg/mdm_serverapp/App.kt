@@ -5,6 +5,7 @@ import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.lifecycle.ViewModelStore
 import androidx.lifecycle.ViewModelStoreOwner
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -23,6 +24,7 @@ import com.dbg.mdm_serverapp.presentation.ui.TutorialScreen
 import com.dbg.mdm_serverapp.presentation.ui.theme.WindowsAppTheme
 import com.dbg.mdm_serverapp.presentation.viewmodel.DashboardViewModel
 import com.dbg.mdm_serverapp.presentation.viewmodel.DeviceDetailViewModel
+import kotlinx.coroutines.launch
 import kotlinx.serialization.modules.SerializersModule
 import kotlinx.serialization.modules.polymorphic
 
@@ -47,6 +49,7 @@ fun App(
 
     val startRoute = if (settings.tutorialCompleted) AppRoute.Devices else AppRoute.Tutorial
     val backStack = rememberNavBackStack(navConfig, startRoute)
+    val scope = rememberCoroutineScope()
 
     WindowsAppTheme {
         NavDisplay(
@@ -75,7 +78,7 @@ fun App(
                         lanAddress = serverState.lanAddress.ifBlank { "—" },
                         devices = serverState.devices,
                         onlineDeviceCount = serverState.onlineDeviceCount,
-                        onRefresh = { dashboardViewModel.refresh() },
+                        onRefresh = { scope.launch { dashboardViewModel.refresh() }},
                         onShowTutorial = { backStack.add(AppRoute.Tutorial) },
                         onDeviceClick = { device ->
                             backStack.add(AppRoute.DeviceDetail(device.id))

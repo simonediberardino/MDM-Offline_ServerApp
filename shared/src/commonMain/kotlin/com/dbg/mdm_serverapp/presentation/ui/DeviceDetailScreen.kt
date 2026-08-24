@@ -1,5 +1,6 @@
 package com.dbg.mdm_serverapp.presentation.ui
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
@@ -26,6 +27,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.Window
 import com.dbg.mdm_serverapp.presentation.i18n.Strings
 import com.dbg.mdm_serverapp.domain.model.DeviceDetail
 import com.dbg.mdm_serverapp.presentation.ui.theme.CardCorner
@@ -37,6 +39,14 @@ import com.dbg.mdm_serverapp.presentation.ui.theme.FluentStroke
 import com.dbg.mdm_serverapp.presentation.ui.theme.FluentSuccess
 import com.dbg.mdm_serverapp.presentation.ui.theme.FluentTextSecondary
 import com.dbg.mdm_serverapp.util.formatEpoch
+import mdm_offline.shared.generated.resources.Android
+import mdm_offline.shared.generated.resources.Apple
+import mdm_offline.shared.generated.resources.Res
+import mdm_offline.shared.generated.resources.Windows
+import mdm_offline.shared.generated.resources.Android
+import org.jetbrains.compose.resources.DrawableResource
+import org.jetbrains.compose.resources.imageResource
+import org.jetbrains.compose.resources.painterResource
 
 @Composable
 fun DeviceDetailScreen(
@@ -46,11 +56,14 @@ fun DeviceDetailScreen(
     onBack: () -> Unit,
     onRefresh: () -> Unit,
 ) {
+    val osName = detail?.facts?.find { it.key == "os_name" }
     Column(
         modifier = Modifier
             .fillMaxSize()
             .background(FluentLayerDefault),
     ) {
+
+
         DetailCommandBar(
             strings = strings,
             title = detail?.device?.name ?: strings.deviceDetails,
@@ -93,6 +106,26 @@ fun DeviceDetailScreen(
                             .verticalScroll(rememberScrollState())
                             .padding(24.dp),
                     ) {
+                        if (osName?.value?.lowercase()?.startsWith("windows") == true){
+                            Image(
+                                modifier = Modifier.size(64.dp),
+                                painter = painterResource(Res.drawable.Windows),
+                                contentDescription = "windows")
+                        }
+                        else if (osName?.value?.lowercase()?.startsWith("apple") == true){
+                            Image(
+                                modifier = Modifier.size(64.dp),
+                                painter = painterResource(Res.drawable.Apple),
+                                contentDescription = "apple")
+                        }
+                        else if (osName?.value?.lowercase()?.startsWith("android") == true){
+                            Image(
+                                modifier = Modifier.size(64.dp),
+                                painter = painterResource(Res.drawable.Android),
+                                contentDescription = "android")
+                        }
+                        Spacer(Modifier.height(8.dp))
+
                         Text(
                             text = strings.deviceDetails,
                             style = MaterialTheme.typography.titleLarge,

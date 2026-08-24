@@ -6,6 +6,7 @@ import androidx.compose.ui.window.application
 import androidx.compose.ui.window.rememberWindowState
 import com.dbg.mdm_serverapp.presentation.viewmodel.DashboardViewModel
 import com.dbg.mdm_serverapp.server.startMdmServer
+import kotlin.system.exitProcess
 
 fun main() {
     val runtime = startMdmServer(wait = false)
@@ -16,7 +17,7 @@ fun main() {
 
     application {
         Window(
-            onCloseRequest = { },
+            onCloseRequest = { exitProcess(0) },
             title = "MDM Offline",
             state = rememberWindowState(width = 1180.dp, height = 780.dp),
         ) {
